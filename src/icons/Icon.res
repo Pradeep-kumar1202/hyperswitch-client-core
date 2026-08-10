@@ -137,7 +137,7 @@ module Icon = {
     </View>
   }
 }
-
+// testing
 let make = React.memoCustomCompareProps(Icon.make, (oldProps, newProps) =>
   oldProps.name === newProps.name && oldProps.fill === newProps.fill
 )

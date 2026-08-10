@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/Pradeep-kumar1202/hyperswitch-client-core//compare/v1.1.1...v1.2.0) (2026-08-10)
+
+
+### Features
+
+* Update PaypalTypes.res ([9cbb97a](https://github.com/Pradeep-kumar1202/hyperswitch-client-core//commit/9cbb97a7839c273cf5124f792fa74e7791df99b8))
+
 ## [1.1.1](https://github.com/Pradeep-kumar1202/hyperswitch-client-core//compare/v1.1.0...v1.1.1) (2026-08-10)
 
 

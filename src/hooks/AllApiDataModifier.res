@@ -2,7 +2,7 @@ type componentHoc = (
   ~isScreenFocus: bool,
   ~setConfirmButtonData: GlobalConfirmButton.confirmButtonData => unit,
 ) => React.element
-
+// testing
 type hoc = {
   name: string,
   paymentMethodType: string,

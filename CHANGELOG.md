@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/Pradeep-kumar1202/hyperswitch-client-core//compare/v1.2.0...v1.3.0) (2026-08-10)
+
+
+### Features
+
+* Create update_bundles.yml ([#8](https://github.com/Pradeep-kumar1202/hyperswitch-client-core//issues/8)) ([1f4d5db](https://github.com/Pradeep-kumar1202/hyperswitch-client-core//commit/1f4d5db95a3d1edd4e6a94edc2653d7626faeb17))
+
 # [1.2.0](https://github.com/Pradeep-kumar1202/hyperswitch-client-core//compare/v1.1.1...v1.2.0) (2026-08-10)
 
 

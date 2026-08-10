@@ -10,6 +10,8 @@ let make = () => {
   let (clientData, _, _) = React.useContext(
     AllApiDataContextNew.allApiDataContext,
   )
+
+// Testing
   let (_, setLoading) = React.useContext(LoadingContext.loadingContext)
   let (confirm, setConfirm) = React.useState(_ => false)
   let (savedCardCvv, setSavedCardCvv) = React.useState(_ => None)

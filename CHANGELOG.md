@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/Pradeep-kumar1202/hyperswitch-client-core//compare/v1.1.0...v1.1.1) (2026-08-10)
+
+
+### Bug Fixes
+
+* Update AllApiDataModifier.res ([924b346](https://github.com/Pradeep-kumar1202/hyperswitch-client-core//commit/924b346348b3495c81471f84d555f590b75760b2))
+
 # [1.1.0](https://github.com/Pradeep-kumar1202/hyperswitch-client-core//compare/v1.0.0...v1.1.0) (2026-08-10)
 
 

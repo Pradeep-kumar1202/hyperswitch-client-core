@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/Pradeep-kumar1202/hyperswitch-client-core//compare/v1.0.0...v1.1.0) (2026-08-10)
+
+
+### Features
+
+* Update PaymentSheet.res ([#7](https://github.com/Pradeep-kumar1202/hyperswitch-client-core//issues/7)) ([a8b1afd](https://github.com/Pradeep-kumar1202/hyperswitch-client-core//commit/a8b1afd23dc20029883d8a5685fceca25263c5ee))
+
 # 1.0.0 (2026-08-10)
 
 

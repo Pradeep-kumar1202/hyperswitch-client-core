@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/Pradeep-kumar1202/hyperswitch-client-core//compare/v1.3.0...v1.4.0) (2026-08-10)
+
+
+### Features
+
+* Update Icon.res ([2b5e1cf](https://github.com/Pradeep-kumar1202/hyperswitch-client-core//commit/2b5e1cf3db86a10c3ac748f4767826174edca26d))
+
 # [1.3.0](https://github.com/Pradeep-kumar1202/hyperswitch-client-core//compare/v1.2.0...v1.3.0) (2026-08-10)
 
 

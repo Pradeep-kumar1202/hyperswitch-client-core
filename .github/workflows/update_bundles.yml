@@ -1,0 +1,191 @@
+name: Update Bundles
+
+# On-demand only. Rebuilds hyperswitch.bundle and pushes it into the native SDK repos.
+# Deliberately knows nothing about versions: it never bumps package.json, never tags,
+# never touches a release. Cutting a release is create_draft_release.yml's job.
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Which bundle(s) to rebuild and push'
+        required: true
+        default: 'both'
+        type: choice
+        options:
+          - both
+          - ios
+          - android
+      shared_code:
+        description: 'Branch of hyperswitch-sdk-utils (shared-code) to build against'
+        required: true
+        default: 'main'
+        type: string
+      dry_run:
+        description: 'Build only - report whether the bundle would change, push nothing'
+        required: false
+        default: false
+        type: boolean
+
+# Nothing is written back to this repo; the pushes target the two SDK repos via the PAT.
+permissions:
+  contents: read
+
+# Never let two bundle pushes race on the same SDK repo branches.
+concurrency:
+  group: update-bundles
+  cancel-in-progress: false
+
+jobs:
+  bundles:
+    runs-on: ubuntu-latest
+    env:
+      # The React Native bundle embeds these at build time. Omitting them would produce a
+      # bundle that silently points at nothing, so they must match the release workflow.
+      SENTRY_DSN: ${{ secrets.HYPERSWITCH_SENTRY_DSN }}
+      SENTRY_ENV: 'production'
+      HYPERSWITCH_PRODUCTION_URL: ${{ secrets.HYPERSWITCH_PRODUCTION_URL }}
+      HYPERSWITCH_INTEG_URL: ${{ secrets.HYPERSWITCH_INTEG_URL }}
+      HYPERSWITCH_SANDBOX_URL: ${{ secrets.HYPERSWITCH_SANDBOX_URL }}
+      HYPERSWITCH_LOGS_PATH: ${{ secrets.HYPERSWITCH_LOGS_PATH }}
+      PROD_ASSETS_END_POINT: ${{ secrets.PROD_ASSETS_END_POINT }}
+      SANDBOX_ASSETS_END_POINT: ${{ secrets.SANDBOX_ASSETS_END_POINT }}
+      INTEG_ASSETS_END_POINT: ${{ secrets.INTEG_ASSETS_END_POINT }}
+
+    steps:
+      - name: Check Admin Permission
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const actor = context.actor;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            try {
+              const { data: permission } = await github.rest.repos.getCollaboratorPermissionLevel({
+                owner,
+                repo,
+                username: actor
+              });
+
+              if (permission.permission !== 'admin') {
+                core.setFailed(`User ${actor} does not have admin permission. Only repository admins can run this workflow.`);
+              } else {
+                console.log(`User ${actor} has admin permission. Proceeding with workflow.`);
+              }
+            } catch (error) {
+              core.setFailed(`Failed to check permissions: ${error.message}`);
+            }
+
+      # Fail here rather than 5 minutes later at the push: the default GITHUB_TOKEN is scoped
+      # to this repository and cannot write to the SDK repos, so a missing PAT is fatal.
+      - name: Verify push credentials
+        if: ${{ !inputs.dry_run }}
+        env:
+          PAT: ${{ secrets.AUTORELEASE_PAT }}
+        run: |
+          if [ -z "$PAT" ]; then
+            echo "::error::AUTORELEASE_PAT is not set. The default GITHUB_TOKEN is scoped to this repository only and cannot push to juspay/hyperswitch-sdk-ios or juspay/hyperswitch-sdk-android."
+            exit 1
+          fi
+          echo "Push credentials present."
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.AUTORELEASE_PAT || github.token }}
+          submodules: recursive
+
+      - name: Setup Node.js & Yarn
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: |
+          corepack enable
+          yarn install
+
+      # --global so the identity applies inside the submodules too.
+      - name: Configure git identity
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Point shared-code at the requested branch
+        env:
+          SHARED_CODE_BRANCH: ${{ inputs.shared_code }}
+        run: |
+          git -C shared-code fetch origin "$SHARED_CODE_BRANCH"
+          git -C shared-code checkout -B "$SHARED_CODE_BRANCH" "origin/$SHARED_CODE_BRANCH"
+          echo "shared-code now at $(git -C shared-code rev-parse --short HEAD) ($SHARED_CODE_BRANCH)"
+
+      - name: Compile ReScript
+        run: yarn re:build
+
+      # NOTE: every `yarn bundle:*` below runs from the repository ROOT on purpose.
+      # The scripts in package.json use root-relative paths (`--entry-file index.js`,
+      # `--bundle-output android/app/...`), and yarn keeps the invocation directory as cwd,
+      # so running them from inside a submodule resolves both paths wrong. `git -C <dir>`
+      # is used for the git work instead of `cd`.
+
+      - name: Android bundle
+        if: inputs.platform == 'both' || inputs.platform == 'android'
+        run: |
+          git -C android fetch origin main
+          git -C android checkout -B main origin/main
+
+          yarn bundle:android
+
+          git -C android add app/src/main/assets/hyperswitch.bundle
+
+          if git -C android diff --staged --quiet; then
+            echo "ANDROID_RESULT=unchanged" >> $GITHUB_ENV
+            echo "Android bundle is byte-identical to what is already on main - nothing to push."
+          elif [ "${{ inputs.dry_run }}" = "true" ]; then
+            echo "ANDROID_RESULT=would change (dry run, not pushed)" >> $GITHUB_ENV
+            git -C android diff --staged --stat
+          else
+            git -C android commit -m "chore: hyperswitch.bundle update from client-core@${GITHUB_SHA:0:7} [skip ci]"
+            git -C android push origin main
+            echo "ANDROID_RESULT=pushed $(git -C android rev-parse --short HEAD)" >> $GITHUB_ENV
+          fi
+
+      - name: iOS bundle
+        if: inputs.platform == 'both' || inputs.platform == 'ios'
+        run: |
+          git -C ios fetch origin main
+          git -C ios checkout -B main origin/main
+
+          yarn bundle:ios
+
+          git -C ios add hyperswitchSDK/Core/Resources/hyperswitch.bundle
+
+          if git -C ios diff --staged --quiet; then
+            echo "IOS_RESULT=unchanged" >> $GITHUB_ENV
+            echo "iOS bundle is byte-identical to what is already on main - nothing to push."
+          elif [ "${{ inputs.dry_run }}" = "true" ]; then
+            echo "IOS_RESULT=would change (dry run, not pushed)" >> $GITHUB_ENV
+            git -C ios diff --staged --stat
+          else
+            git -C ios commit -m "chore: hyperswitch.bundle update from client-core@${GITHUB_SHA:0:7} [skip ci]"
+            git -C ios push origin main
+            echo "IOS_RESULT=pushed $(git -C ios rev-parse --short HEAD)" >> $GITHUB_ENV
+          fi
+
+      - name: Summarise Outcome
+        if: always()
+        run: |
+          {
+            echo "### 📦 Bundle update"
+            echo ""
+            echo "| | |"
+            echo "| --- | --- |"
+            echo "| Platform | \`${{ inputs.platform }}\` |"
+            echo "| shared-code | \`${{ inputs.shared_code }}\` |"
+            echo "| Dry run | \`${{ inputs.dry_run }}\` |"
+            echo "| Android | ${ANDROID_RESULT:-skipped} |"
+            echo "| iOS | ${IOS_RESULT:-skipped} |"
+            echo ""
+            echo "Built from client-core \`${GITHUB_SHA:0:7}\`. No version was bumped and no tag was created."
+          } >> $GITHUB_STEP_SUMMARY

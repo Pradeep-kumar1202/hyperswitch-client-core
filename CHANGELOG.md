@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/Pradeep-kumar1202/hyperswitch-client-core//compare/v1.4.0...v1.5.0) (2026-08-10)
+
+
+### Features
+
+* Update ExpressCheckoutWidget.res ([#9](https://github.com/Pradeep-kumar1202/hyperswitch-client-core//issues/9)) ([7458a39](https://github.com/Pradeep-kumar1202/hyperswitch-client-core//commit/7458a39dcb118407fae5567bf391dd4708bc3f16))
+
 # [1.4.0](https://github.com/Pradeep-kumar1202/hyperswitch-client-core//compare/v1.3.0...v1.4.0) (2026-08-10)
 
 
